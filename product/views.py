@@ -1,12 +1,13 @@
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from .models import Product
 from django.utils import timezone
 
 def home(request):
-	return render(request, 'product/home.html')
+	products = Product.objects
+	return render(request, 'product/home.html', {'products': products})
 
-@login_required
+@login_required(login_url="/account/signup")
 def create(request):
 	if request.method == 'POST':
 		if request.POST['title'] and \
@@ -28,8 +29,20 @@ def create(request):
 			product.votes_total = 1
 			product.hunter = request.user
 			product.save()
-			return redirect('home')
+			return redirect('/product/' + str(product.id))
 		else:
 			return render(request, 'product/create.html', {'error': 'All field are required!'})
 	else:
 		return render(request, 'product/create.html')
+
+def detail(request, product_id):
+	product = get_object_or_404(Product, pk=product_id)
+	return render(request, 'product/detail.html', {'product': product})
+
+@login_required(login_url="/account/signup")
+def upvote(request, product_id):
+	if request.method == 'POST':
+		product = get_object_or_404(Product, pk=product_id)
+		product.votes_total += 1
+		product.save()
+		return redirect('/product/' + str(product.id))
